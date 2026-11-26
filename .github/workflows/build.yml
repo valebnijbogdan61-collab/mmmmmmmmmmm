@@ -16,7 +16,13 @@ jobs:
         with:
           gradle-version: 8.7
       - name: Build debug APK
-        run: gradle :app:assembleDebug --no-daemon
+        run: |
+          for i in 1 2 3; do
+            gradle :app:assembleDebug --no-daemon && break
+            if [ "$i" = "3" ]; then exit 1; fi
+            echo "Спроба $i не вдалась, чекаємо 60 с"
+            sleep 60
+          done
       - name: Rename APK to IDB
         run: cp app/build/outputs/apk/debug/app-debug.apk IDB.apk
       - uses: actions/upload-artifact@v4
