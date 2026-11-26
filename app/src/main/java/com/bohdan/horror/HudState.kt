@@ -10,5 +10,6 @@ class HudState(
     val holding: Boolean, val charging: Boolean, val charge: Float,
     val showF: Boolean, val showC: Boolean,
     val phoneOpen: Boolean, val phoneNum: String, val phoneLines: List<String>,
-    val dead: Boolean, val deadText: String, val endScreen: Boolean
+    val dead: Boolean, val deadText: String, val endScreen: Boolean,
+    val gun: Float, val endBlack: Boolean
 )

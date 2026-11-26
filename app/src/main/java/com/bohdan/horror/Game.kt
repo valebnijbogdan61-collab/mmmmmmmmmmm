@@ -80,6 +80,10 @@ class Game {
     private var grabT = 0f; private var grabDx = 0f; private var grabDz = 0f; private var grabReset = false; private var grabShock1 = false; private var grabShock2 = false
     private var stepT = 0f
     private var screamT = 0f
+    private var callMode = 102
+    private var gunT = 0f
+    var gunLevel = 0f
+    var endBlack = false
     private var callState = 0; private var callT = 0f; private var etaT = 0f; private var callLine = 0
     private var broke = false
     var copStage = 0; private var copT = 0f
@@ -89,7 +93,15 @@ class Game {
     private var dragFromX = 0f; private var dragFromZ = 0f; private var dragDur = 2f
     private var endT = 0f
 
-    private val callScript = arrayOf(
+    private val script911 = arrayOf(
+        0.6f to "— 911, what's your emergency?",
+        2.8f to "— ...?",
+        4.4f to "— Sir, I need your address. Stay on the line.",
+        6.4f to "— Do you speak English? Hello?",
+        8.2f to "(Ти нічого не розумієш)"
+    )
+
+    private val script102 = arrayOf(
         0.6f to "— Поліція, 102. Що трапилось?",
         3.0f to "— У мене в квартирі якийсь монстр!",
         5.4f to "— Назвіть адресу.",
@@ -106,7 +118,7 @@ class Game {
     fun hudSnapshot(): HudState = HudState(
         prompt, msg, msgT, fade, flash, bigText, bigT, keyTimer, phase == Phase.KEY,
         holding, charging, charge, showF, showC, phoneOpen, phoneNum, phoneLines.toList(),
-        dead, deadText, endScreen
+        dead, deadText, endScreen, gunLevel, endBlack
     )
 
     private fun say(s: String) { msg = s; msgT = 3.2f }
@@ -450,6 +462,8 @@ class Game {
             if (callState >= 1) updateCall(dt)
             if (c && showC) whistle()
             if (whistleWin > 0f) { whistleWin -= dt; if (whistleWin <= 0f && (mm == MM.EARS || mm == MM.KNEEL)) { mm = MM.CHASE; whistleCount = 0 } }
+            if (callMode == 911 && gunT <= 0f && !dead && mm == MM.CHASE && dist(px, pz, mx, mz) < 4f) { gunT = 0.001f; showFClear() }
+            if (gunT > 0f) updateGun(dt)
             if (copStage >= 1) updateCops(dt)
             if (carVisible && (copStage == 1 || copStage == 7) && abs(pz - CAR_Z) < 1.3f && abs(px - carX) < 2.6f) die("Тебе збила поліцейська машина", true)
         }
@@ -465,7 +479,23 @@ class Game {
         return floatArrayOf(px, pz)
     }
 
+    private fun showFClear() { phoneOpen = false; throwHeld = false }
+
+    private fun updateGun(dt: Float) {
+        gunT += dt
+        val want = atan2(mx - px, mz - pz) * DEG
+        var dy = want - yaw
+        while (dy > 180f) dy -= 360f
+        while (dy < -180f) dy += 360f
+        yaw += dy * min(1f, dt * 6f); pitch += (4f - pitch) * min(1f, dt * 6f)
+        gunLevel = min(1f, gunT / 1.0f)
+        if (gunT in 1.3f..1.35f && flash < 0.5f) { Audio.stopAll(); Audio.play("shot", 1f); flash = 1f }
+        if (gunT > 1.35f) fade = min(1f, (gunT - 1.35f) / 0.35f)
+        if (gunT > 1.7f) { gunLevel = 0f; endBlack = true; phase = Phase.ENDED; endT = 1.5f; fade = 1f; flash = 0f }
+    }
+
     private fun updateMonsterOnly(dt: Float) {
+        if (gunT > 0f) return
         if (!monsterVisible && mm != MM.GONE) return
         val d = dist(px, pz, mx, mz)
         val tg = pathTarget()
@@ -511,7 +541,7 @@ class Game {
         if (callState != 0) return
         if (k == 'B') { if (phoneNum.isNotEmpty()) phoneNum = phoneNum.dropLast(1); return }
         if (k == 'C') {
-            if (phoneNum == "102") { callState = 1; callT = 0f; etaT = 0f; callLine = 0; phoneLines.clear(); Audio.play("ring") }
+            if (phoneNum == "102" || phoneNum == "911") { callMode = if (phoneNum == "911") 911 else 102; callState = 1; callT = 0f; etaT = 0f; callLine = 0; phoneLines.clear(); Audio.play("ring") }
             else { say("Такого номера немає"); phoneNum = "" }
             return
         }
@@ -520,17 +550,19 @@ class Game {
 
     private fun updateCall(dt: Float) {
         etaT += dt
+        val callScript = if (callMode == 911) script911 else script102
+        val breakAt = if (callMode == 911) 14f else 17f
         if (callState == 1) {
             callT += dt
             while (callLine < callScript.size && callT >= callScript[callLine].first) { phoneLines.add(callScript[callLine].second); callLine++ }
-            if (callT >= 11.5f) { callState = 2; phoneOpen = false; say("Поліція виїхала. Протримайся!") }
+            if (callT >= (if (callMode == 911) 9.6f else 11.5f)) { callState = 2; phoneOpen = false; say(if (callMode == 911) "Ти нічого не зрозумів і поклав слухавку" else "Поліція виїхала. Протримайся!") }
         }
-        if (!broke && etaT >= 17f) {
+        if (!broke && etaT >= breakAt) {
             broke = true; Audio.play("break"); Audio.play("scare", 0.6f)
             doorSpeed = 600f; doorTarget = 100f
             mx = 0f; mz = 0.8f; mm = MM.CHASE; flash = 0.5f
-        } else if (!broke && etaT >= 13f && etaT < 13.1f) Audio.play("knock")
-        if (copStage == 0 && etaT >= 30f) startCar()
+        } else if (!broke && etaT >= breakAt - 4f && etaT < breakAt - 3.9f) Audio.play("knock")
+        if (copStage == 0 && etaT >= 30f && callMode == 102) startCar()
     }
 
     private fun doInteract() {

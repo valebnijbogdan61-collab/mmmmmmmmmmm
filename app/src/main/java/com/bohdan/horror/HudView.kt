@@ -326,6 +326,15 @@ class HudView(
                 }
             }
 
+            if (s.gun > 0.01f) {
+                val gx = w * 0.60f; val gy = h * (1.12f - 0.50f * s.gun)
+                p.style = Paint.Style.FILL; p.color = Color.rgb(28, 28, 32)
+                c.drawRoundRect(RectF(gx, gy, gx + w * 0.20f, gy + h * 0.10f), 14f, 14f, p)
+                c.drawRoundRect(RectF(gx + w * 0.02f, gy + h * 0.09f, gx + w * 0.07f, gy + h * 0.34f), 12f, 12f, p)
+                p.color = Color.rgb(90, 90, 98)
+                c.drawRect(gx + w * 0.01f, gy + h * 0.015f, gx + w * 0.19f, gy + h * 0.025f, p)
+                if (s.flash > 0.4f) { p.color = Color.argb(230, 255, 220, 120); c.drawCircle(gx + w * 0.205f, gy + h * 0.05f, h * 0.09f, p) }
+            }
             if (s.bigT > 0f && s.bigText.isNotEmpty()) text(c, s.bigText, w / 2, h * 0.45f, h * 0.15f, Color.argb(min(255, (s.bigT * 255).toInt()), 200, 0, 0))
             if (s.flash > 0.01f) { p.style = Paint.Style.FILL; p.color = Color.argb((min(1f, s.flash) * 255).toInt(), 255, 255, 255); c.drawRect(0f, 0f, w, h, p) }
             if (s.fade > 0.01f) { p.style = Paint.Style.FILL; p.color = Color.argb((min(1f, s.fade) * 255).toInt(), 0, 0, 0); c.drawRect(0f, 0f, w, h, p) }
@@ -338,7 +347,7 @@ class HudView(
             }
             if (s.endScreen) {
                 p.style = Paint.Style.FILL; p.color = Color.BLACK; c.drawRect(0f, 0f, w, h, p)
-                text(c, "Wait, Chapter 2", w / 2, h * 0.48f, h * 0.11f, Color.WHITE)
+                if (!s.endBlack) text(c, "Wait, Chapter 2", w / 2, h * 0.48f, h * 0.11f, Color.WHITE)
                 text(c, "Торкнись екрана, щоб зіграти знову", w / 2, h * 0.9f, h * 0.035f, Color.GRAY, false)
             }
         }

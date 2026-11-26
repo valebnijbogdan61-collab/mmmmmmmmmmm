@@ -70,6 +70,7 @@ object Audio {
             val env = min(1f, t * 8f) * exp(-t * 0.9f)
             (s(t * (900f + 400f * s(t * 5f) + 200f * t)) * 0.4f + noise() * 0.12f) * env * 0.7f
         }
+        "shot" -> gen(0.8f) { t -> (noise() * 0.9f + s(t * 90f) * 0.6f) * exp(-t * 9f) }
         "step" -> gen(0.12f) { t -> noise() * exp(-t * 40f) * 0.4f }
         "splat" -> gen(0.35f) { t -> (noise() * 0.7f + s(t * 120f) * 0.3f) * exp(-t * 14f) }
         "ring" -> gen(1.6f) { t -> (if ((t % 1.2f) < 0.4f) s(t * 425f) * 0.3f else 0f) }
